@@ -2,11 +2,13 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ContactController;
-use App\Http\Controllers\Api\UserController;
-
-
+use App\Http\Controllers\Api\{
+        UserController,
+        ImportController,
+        ContactController,
+        AuthController,
+        BookingController
+    };
 
 /*
 |--------------------------------------------------------------------------
@@ -44,4 +46,9 @@ Route::middleware('jwt.verify')->group(function() {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::delete('/delete-account', [AuthController::class, 'deleteAccount']);
     
+    // Import Excel api
+    Route::post('/import/Booking/excel', [ImportController::class, 'bookingExcelImport']);
+
+    // Get Booking APi
+    Route::get('/booking/list', [BookingController::class, 'list']);
 });
