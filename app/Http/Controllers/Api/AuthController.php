@@ -291,10 +291,9 @@ class AuthController extends Controller
     {
         $data = $request->all();
         $validator = Validator::make($data, [
-            'phone' => 'required|numeric',
-            'country_code' => 'required|numeric',
+            'email' => 'required',
             'password' => 'required',
-            'device_type'=>'required|in:ios,android',
+            'device_type'=>'required|in:ios,android,web',
             'device_token'=>'required',
         ]);
 
@@ -307,12 +306,12 @@ class AuthController extends Controller
         
         try
         {
-            $user = User::where('phone',$data['phone'])->where('country_code',$data['country_code'])->where('role','user')->first();
+            $user = User::where('email',$data['email'])->where('role','user')->first();
            
             if(!$user){
                 return response()->json([
                     'status' => false,
-                    'message' => 'Phone number not exists',
+                    'message' => 'Email number not exists',
                 ]);      
             }
 
@@ -323,14 +322,13 @@ class AuthController extends Controller
                 ]);      
             }
             
-            $input['phone'] = $data['phone'];
-            $input['country_code'] = $data['country_code'];
+            $input['email'] = $data['email'];
             $input['password'] = $data['password'];
 
             if(!$token = JWTAuth::attempt($input)) {
                 return response()->json([
                     'status' => false,
-                    'message'=>'Invalid phone or password. Please try again'
+                    'message'=>'Invalid email or password. Please try again'
                 ],200);
             }
 
@@ -485,7 +483,6 @@ class AuthController extends Controller
             'last_name' => 'sometimes|string',
             'email'     =>  'sometimes|email|unique:users,email,'.$id,
             'phone'     =>  'sometimes|numeric|digits_between:4,12|unique:users,phone,'.$id,
-            'password' => 'sometimes|min:6',
             'avatar'  =>  'sometimes|mimes:jpeg,jpg,png|max:5000',
             'address' => 'sometimes',
             'area' => 'sometimes',
