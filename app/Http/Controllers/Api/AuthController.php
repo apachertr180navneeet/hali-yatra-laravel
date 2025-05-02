@@ -306,12 +306,12 @@ class AuthController extends Controller
         
         try
         {
-            $user = User::where('email',$data['email'])->where('role','user')->first();
+            $user = User::where('email',$data['email'])->first();
            
             if(!$user){
                 return response()->json([
                     'status' => false,
-                    'message' => 'Email number not exists',
+                    'message' => 'Email not exists',
                 ]);      
             }
 

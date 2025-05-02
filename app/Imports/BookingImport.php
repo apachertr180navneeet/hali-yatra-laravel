@@ -5,21 +5,24 @@ namespace App\Imports;
 use App\Models\Booking;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Carbon\Carbon;
 
-class BookingImport implements ToModel, WithHeadingRow
+class BookingImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 {
+    private $duplicateCount = 0; // Duplicate counter
+
     public function model(array $row)
     {
-        // Check if booking_id already exists in the database
+        // Check if booking_id already exists
         $existingBooking = Booking::where('booking_id', $row['booking_id'])->first();
 
-        // If booking_id exists, return the existing record, otherwise create a new one
         if ($existingBooking) {
-            return $existingBooking; // Skip inserting, returning the existing record
+            $this->duplicateCount++; // Duplicate found, increment counter
+            return null; // Skip inserting
         }
 
-        // If booking_id does not exist, create a new record
+        // Create new record
         return new Booking([
             'booking_id' => $this->nullOrString($row['booking_id']),
             'operator_name' => $this->nullOrString($row['operator_name']),
@@ -66,5 +69,11 @@ class BookingImport implements ToModel, WithHeadingRow
     private function nullOrString($value)
     {
         return ($value === null || trim($value) === '') ? null : $value;
+    }
+
+    // Add this function to get duplicate count after import
+    public function getDuplicateCount()
+    {
+        return $this->duplicateCount;
     }
 }

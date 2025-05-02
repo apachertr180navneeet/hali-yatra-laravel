@@ -6,14 +6,17 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\{
     User,
-    Booking
+    PaymentType,
 };
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Mail,Hash,File,DB,Helper,Auth;
 use Carbon\Carbon;
-use App\Imports\BookingImport;
+use App\Imports\{
+    BookingImport,
+    BookingDetailsImport
+};
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportController extends Controller
@@ -28,10 +31,36 @@ class ImportController extends Controller
 
         try {
             if($request->type == "booking"){
-                Excel::import(new BookingImport, $request->file('excel'));
-                $message = "Booking data imported successfully";
+                // Step 1: Create object manually
+                $import = new BookingImport();
+
+                // Step 2: Pass object into import
+                Excel::import($import, $request->file('excel'));
+
+                // Step 3: Get duplicate count
+                $duplicateCount = $import->getDuplicateCount();
+
+                // Step 4: Create message
+                if ($duplicateCount > 0) {
+                    $message = "Booking data imported successfully. $duplicateCount duplicate entries were skipped.";
+                } else {
+                    $message = "Booking data imported successfully. No duplicate entries found.";
+                }
             }else{
-                $message = "hello";
+                $import = new BookingDetailsImport(); // Create instance
+
+                // Perform import
+                Excel::import($import, $request->file('excel'));
+
+                // Get skipped booking IDs
+                $skippedIds = $import->getSkippedBookingIds();
+
+                // Prepare message
+                $message = "Booking Detail data imported successfully.";
+
+                // if (!empty($skippedIds)) {
+                //     $message .= " Skipped booking IDs: $skippedIds";
+                // }
             }
 
             return response()->json([

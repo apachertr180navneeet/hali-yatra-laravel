@@ -7,48 +7,62 @@ use App\Http\Controllers\Api\{
         ImportController,
         ContactController,
         AuthController,
-        BookingController
+        BookingController,
+        PaymentTypeController
     };
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
-
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
-
-Route::get('/splash-screen', [AuthController::class, 'splashScreens']);
-Route::get('/timezones', [AuthController::class, 'getTimeZones']);
-Route::post('/contact', [ContactController::class, 'submitContact']);
-
-Route::group(['prefix'=>'auth'], function(){
-    Route::post('/send-phone-otp', [AuthController::class, 'sendPhoneOtp']);
-    Route::post('/verify-phone-otp', [AuthController::class, 'verifyPhoneOtp']);
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/verify-register', [AuthController::class, 'verifyRegister']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/set-forgot-password', [AuthController::class, 'setForgotPassword']);
+// Public Routes
+Route::controller(AuthController::class)->group(function () {
+    Route::get('/splash-screen', 'splashScreens');
+    Route::get('/timezones', 'getTimeZones');
 });
 
-Route::middleware('jwt.verify')->group(function() {
-    Route::get('/user', [AuthController::class, 'getUser']);
-    Route::post('/refresh', [AuthController::class, 'refresh']);
-    Route::post('/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/update-profile', [AuthController::class, 'updateProfile']);     
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::delete('/delete-account', [AuthController::class, 'deleteAccount']);
-    
-    // Import Excel api
-    Route::post('/import/Booking/excel', [ImportController::class, 'bookingExcelImport']);
+Route::post('/contact', [ContactController::class, 'submitContact']);
 
-    // Get Booking APi
-    Route::get('/booking/list', [BookingController::class, 'list']);
+// Auth Routes
+Route::prefix('auth')->controller(AuthController::class)->group(function () {
+    Route::post('/send-phone-otp', 'sendPhoneOtp');
+    Route::post('/verify-phone-otp', 'verifyPhoneOtp');
+    Route::post('/register', 'register');
+    Route::post('/verify-register', 'verifyRegister');
+    Route::post('/login', 'login');
+    Route::post('/set-forgot-password', 'setForgotPassword');
+});
+
+// Protected Routes (JWT Middleware)
+Route::middleware('jwt.verify')->group(function () {
+
+    // Auth-related actions
+    Route::controller(AuthController::class)->group(function () {
+        Route::get('/user', 'getUser');
+        Route::post('/refresh', 'refresh');
+        Route::post('/change-password', 'changePassword');
+        Route::post('/update-profile', 'updateProfile');
+        Route::post('/logout', 'logout');
+        Route::delete('/delete-account', 'deleteAccount');
+    });
+
+    // Booking Import
+    Route::post('/import/booking/excel', [ImportController::class, 'bookingExcelImport']);
+
+    // Booking APIs
+    Route::prefix('booking')->controller(BookingController::class)->group(function () {
+        Route::get('/list', 'list');
+        Route::get('/viauser/list', 'bookingviauserlist');
+        Route::post('/detail', 'detail');
+        Route::post('/detail/user', 'detailuser');
+    });
+
+    // Payment Type APIs
+    Route::prefix('payment-type')->controller(PaymentTypeController::class)->group(function () {
+        Route::get('/list', 'list');
+        Route::post('/store', 'store');
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
+        Route::post('/delete', 'delete');
+        Route::get('/trashed', 'trashed');
+        Route::post('/restore', 'restore');
+        Route::post('/force-delete', 'forceDelete');
+        Route::post('/status', 'status');
+    });
 });
