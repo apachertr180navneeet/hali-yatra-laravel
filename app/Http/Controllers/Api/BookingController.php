@@ -81,7 +81,14 @@ class BookingController extends Controller
         try {
             // Start query with join on bookings table
             $query = BookingDetail::join('bookings', 'booking_detail.booking_id', '=', 'bookings.booking_id')
-                ->select('booking_detail.*', 'bookings.no_of_passengers'); // Add required booking fields here
+                ->select(
+                    'booking_detail.*', 
+                    'bookings.no_of_passengers',
+                    'bookings.total_amount',
+                    'bookings.booking_base_fare',
+                    'bookings.booking_convenience_fee',
+                    'bookings.booking_convenience_fee_tax',
+                    'bookings.booking_base_fare_tax',); // Add required booking fields here
 
             // Filter by booking_id if provided
             if ($request->has('booking_id') && !empty($request->booking_id)) {
