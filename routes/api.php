@@ -8,7 +8,8 @@ use App\Http\Controllers\Api\{
         ContactController,
         AuthController,
         BookingController,
-        PaymentTypeController
+        PaymentTypeController,
+        SettingController
     };
 
 // Public Routes
@@ -64,5 +65,10 @@ Route::middleware('jwt.verify')->group(function () {
         Route::post('/restore', 'restore');
         Route::post('/force-delete', 'forceDelete');
         Route::post('/status', 'status');
+    });
+
+    Route::prefix('setting')->controller(SettingController::class)->group(function () {
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
     });
 });
