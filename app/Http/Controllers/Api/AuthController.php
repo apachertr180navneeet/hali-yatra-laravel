@@ -293,7 +293,7 @@ class AuthController extends Controller
         $validator = Validator::make($data, [
             'email' => 'required',
             'password' => 'required',
-            'device_type'=>'required|in:ios,android,web',
+            'device_type'=>'required|in:ios,android,web,mobile,tablet',
             'device_token'=>'required',
         ]);
 
