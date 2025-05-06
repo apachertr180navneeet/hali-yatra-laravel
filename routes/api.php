@@ -9,7 +9,8 @@ use App\Http\Controllers\Api\{
         AuthController,
         BookingController,
         PaymentTypeController,
-        SettingController
+        SettingController,
+        BookingTransactionController
     };
 
 // Public Routes
@@ -69,6 +70,10 @@ Route::middleware('jwt.verify')->group(function () {
 
     Route::prefix('setting')->controller(SettingController::class)->group(function () {
         Route::post('/get', 'get');
+        Route::post('/update', 'update');
+    });
+
+    Route::prefix('booking/transiction')->controller(BookingTransactionController::class)->group(function () {
         Route::post('/update', 'update');
     });
 });

@@ -178,16 +178,8 @@ class BookingController extends Controller
     public function detailuser(Request $request) 
     {
         try {
-            $booking = BookingDetail::where('booking_detail.booking_id', $request->booking_id)
-                ->join('bookings', 'bookings.booking_id', '=', 'booking_detail.booking_id')
-                ->select(
-                    'booking_detail.*',
-                    'bookings.total_amount',
-                    'bookings.booking_base_fare',
-                    'bookings.booking_convenience_fee',
-                    'bookings.booking_convenience_fee_tax',
-                    'bookings.booking_base_fare_tax',
-                )
+            $booking = Booking::with('bookingDetails')
+                ->where('booking_id', $request->booking_id)
                 ->first();
 
             if (!$booking) {
@@ -197,15 +189,49 @@ class BookingController extends Controller
                 ], 200);
             }
 
-            // Split by hyphen
+            // Split journey
             $journeyParts = explode('-', $booking->journey);
-            $booking->journey_start = isset($journeyParts[0]) ? trim($journeyParts[0]) : null;
-            $booking->journey_end = isset($journeyParts[1]) ? trim($journeyParts[1]) : null;
+            $journey_start = isset($journeyParts[0]) ? trim($journeyParts[0]) : '';
+            $journey_end = isset($journeyParts[1]) ? trim($journeyParts[1]) : '';
+
+            // Format only necessary passenger details
+            $passengers = $booking->bookingDetails->map(function ($passenger) {
+                return [
+                    'name' => $passenger->name ?? '',
+                    'age' => $passenger->age ?? '',
+                    'gender' => $passenger->gender ?? '',
+                    'yatra_reg_id' => $passenger->yatra_reg_id ?? '',
+                    'mobile_no' => $passenger->mobile_no ?? '',
+                    'government_id' => $passenger->government_id ?? '',
+                    'government_id_type' => $passenger->government_id_type ?? '',
+                ];
+            });
+
+            // Build the response
+            $formattedBooking = [
+                'id' => $booking->id,
+                'operator_name' => $booking->operator_name ?? '',
+                'booking_id' => $booking->booking_id ?? '',
+                'transaction_id' => $booking->transaction_id ?? '',
+                'group_id' => $booking->group_id ?? '',
+                'booking_status' => $booking->booking_status ?? '',
+                'passenger_booking_status' => $booking->passenger_booking_status ?? '',
+                'last_update_time' => $booking->last_update_time ?? '',
+                'booking_type' => $booking->booking_type ?? '',
+                'booking_date' => $booking->booking_date ?? '',
+                'journey' => $booking->journey ?? '',
+                'journey_start' => $journey_start,
+                'journey_end' => $journey_end,
+                'boarding_date' => $booking->boarding_date ?? '',
+                'time_slot' => $booking->time_slot ?? '',
+                'return_type' => $booking->return_type ?? '',
+                'passengers' => $passengers,
+            ];
 
             return response()->json([
                 'status' => true,
                 'message' => 'Booking found successfully.',
-                'bookings' => $booking,
+                'booking' => [$formattedBooking],
             ], 200);
 
         } catch (\Exception $e) {
@@ -215,7 +241,4 @@ class BookingController extends Controller
             ], 200);
         }
     }
-    
-
-
 }

@@ -35,4 +35,10 @@ class Booking extends Model
         'remarks',
         'refund_amount',
     ];
+
+
+        // Booking model mein relation define hona chahiye
+        public function bookingDetails() {
+            return $this->hasMany(BookingDetail::class, 'booking_id', 'booking_id');
+        }
 }
