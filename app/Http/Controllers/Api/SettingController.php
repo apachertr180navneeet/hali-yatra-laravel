@@ -19,7 +19,7 @@ class SettingController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:settings,id',
+            'id' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -29,29 +29,33 @@ class SettingController extends Controller
             ], 422);
         }
 
-        // Get the payment type
         try {
-            $setting = Setting::where('id',$request->id)->first();
+            // Attempt to find the setting by ID
+            $setting = Setting::find($request->id);
+
             return response()->json([
                 'status' => true,
-                'message' => 'Setting found successfully.',
-                'setting' => $setting,
+                'message' => $setting ? 'Setting found successfully.' : 'No setting found.',
+                'setting' => $setting ?? (object)[], // return empty object if null
             ], 200);
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage(),
-            ], 200);
+            ], 500);
         }
     }
 
     public function update(Request $request)
     {
-        // Validate the request
+        // Validate incoming request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:payment_type,id',
-            'type_name' => 'required|string|max:255',
+            'id' => 'required|integer|exists:settings,id',
+            'minimum_body_weight' => 'required|numeric|min:0',
+            'minimum_luggage_weight' => 'required|numeric|min:0',
+            'minimum_body_weight_amount' => 'required|numeric|min:0',
+            'minimum_luggage_weight_amount' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -61,24 +65,28 @@ class SettingController extends Controller
             ], 422);
         }
 
-        // Update the payment type
+        // Try to update settings
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
-            $paymenttype->update([
-                'type_name' => $request->type_name,
-                'updated_by' => Auth::id(),
+            $setting = Setting::findOrFail($request->id);
+
+            $setting->update([
+                'minimum_body_weight' => $request->minimum_body_weight,
+                'minimum_luggage_weight' => $request->minimum_luggage_weight,
+                'minimum_body_weight_amount' => $request->minimum_body_weight_amount,
+                'minimum_luggage_weight_amount' => $request->minimum_luggage_weight_amount,
+                'updated_by' => Auth::id(), // Optional, if you track who updated
             ]);
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type updated successfully.',
+                'message' => 'Settings updated successfully.',
             ], 200);
-
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => $e->getMessage(),
-            ], 200);
+                'message' => 'Failed to update settings: ' . $e->getMessage(),
+            ], 500);
         }
     }
+
 }

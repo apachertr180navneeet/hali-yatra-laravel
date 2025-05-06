@@ -58,7 +58,7 @@ class PaymentTypeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'type_name' => 'required|string|max:255',
+            'type_name' => 'required|string|max:255|unique:payment_type,type_name',
         ]);
 
         if ($validator->fails()) {

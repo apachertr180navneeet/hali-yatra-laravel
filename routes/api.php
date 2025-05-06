@@ -74,6 +74,6 @@ Route::middleware('jwt.verify')->group(function () {
     });
 
     Route::prefix('booking/transiction')->controller(BookingTransactionController::class)->group(function () {
-        Route::post('/update', 'update');
+        Route::post('/update', 'storeOrUpdateExtraWeightBooking');
     });
 });
