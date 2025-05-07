@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
 use App\Models\{
     User,
     PaymentType,
@@ -12,25 +11,25 @@ use App\Models\{
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Illuminate\Support\Facades\Storage;
 use Mail,Hash,File,DB,Helper,Auth;
 use Carbon\Carbon;
-use Illuminate\Validation\Rule;
 
-class PaymentTypeController extends Controller
+class UserController extends Controller
 {
     public function list() 
     {
         try {
-            $query = PaymentType::query();
+            $query = User::query();
 
             // Order by latest and paginate
-            $paymenttype = $query->orderBy('created_at', 'desc')->paginate(10);
+            $paymenttype = $query->where('role','operator')->orderBy('created_at', 'desc')->paginate(10);
 
             // Check if empty
             if ($paymenttype->isEmpty()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Payment Type not found',
+                    'message' => 'Operator not found',
                 ], 200);
             }
 
@@ -57,48 +56,58 @@ class PaymentTypeController extends Controller
 
     public function store(Request $request)
     {
-        // Validate the request
+        // Validate the incoming request
         $validator = Validator::make($request->all(), [
-            'type_name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('payment_type', 'type_name')->whereNull('deleted_at'),
-            ],
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'mobile'   => 'required|digits_between:10,15|unique:users,phone',
+            'address'  => 'nullable|string|max:255',
+            'profile'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // max 2MB
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => $validator->errors(),
             ], 422);
         }
 
-        // Create a new payment type
         try {
-            $paymenttype = PaymentType::create([
-                'type_name' => $request->type_name,
+            // Upload avatar if present
+            $avatarPath = null;
+            if ($request->hasFile('profile')) {
+                $avatarPath = $request->file('profile')->store('avatars', 'public');
+            }
+            
+            // Create the user with default password
+            $user = User::create([
+                'full_name'  => $request->name,
+                'email'      => $request->email,
+                'phone'      => $request->mobile,
+                'address'    => $request->address,
+                'password'   => Hash::make('123456789'),
                 'created_by' => Auth::id(),
+                'role'       => 'operator',
+                'avatar'     => $avatarPath, // assuming `avatar` column exists in users table
             ]);
 
             return response()->json([
-                'status' => true,
-                'message' => 'Payment Type created successfully.',
+                'status'  => true,
+                'message' => 'User created successfully.',
             ], 201);
 
         } catch (Exception $e) {
             return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 200);
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
     public function get(Request $request)
     {
-        // Validate the request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:payment_type,id',
+            'id' => 'required|integer|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -108,57 +117,83 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Get the payment type
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $user = User::select('id', 'full_name', 'email', 'phone', 'address', 'avatar')
+                        ->where('id', $request->id)
+                        ->first();
+
+            $userArray = collect($user)->map(function ($value, $key) {
+                if ($key === 'avatar' && $value !== null) {
+                    return asset('storage/avatars/' . $value); // Only one full path
+                }
+                return $value === null ? "" : $value;
+            });
+
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type found successfully.',
-                'paymenttype' => $paymenttype,
+                'message' => 'User found successfully.',
+                'user' => $userArray,
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage(),
-            ], 200);
+            ], 500);
         }
     }
 
+
     public function update(Request $request)
     {
-        // Validate the request
+        // Validate request input
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:payment_type,id',
-            'type_name' => 'required|string|max:255',
+            'id'        => 'required|integer|exists:users,id',
+            'name' => 'required|string|max:255',
+            'email'     => 'required|email|unique:users,email,' . $request->id,
+            'mobile'     => 'required|digits_between:10,15|unique:users,phone,' . $request->id,
+            'address'   => 'nullable|string|max:255',
+            'profile'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => $validator->errors(),
             ], 422);
         }
 
-        // Update the payment type
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
-            $paymenttype->update([
-                'type_name' => $request->type_name,
-                'status' => $request->status,
-                'updated_by' => Auth::id(),
-            ]);
+            // Find user
+            $user = User::findOrFail($request->id);
+
+            // Handle avatar upload and delete old one
+            if ($request->hasFile('profile')) {
+                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
+                $avatarPath = $request->file('profile')->store('avatars', 'public');
+                $user->avatar = $avatarPath;
+            }
+
+            // Update fields
+            $user->full_name  = $request->name;
+            $user->email      = $request->email;
+            $user->phone      = $request->mobile;
+            $user->address    = $request->address;
+            $user->updated_by = Auth::id();
+            $user->save();
 
             return response()->json([
-                'status' => true,
-                'message' => 'Payment Type updated successfully.',
+                'status'  => true,
+                'message' => 'User updated successfully.',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], 200);
+                'status'  => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
         }
     }
     
@@ -166,7 +201,7 @@ class PaymentTypeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:payment_type,id',
+            'id' => 'required|integer|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -178,12 +213,12 @@ class PaymentTypeController extends Controller
 
         // Delete the payment type
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = User::where('id',$request->id)->first();
             $paymenttype->delete();
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type deleted successfully.',
+                'message' => 'User deleted successfully.',
             ], 200);
 
         } catch (Exception $e) {
@@ -197,7 +232,7 @@ class PaymentTypeController extends Controller
     public function trashed()
     {
         try {
-            $query = PaymentType::onlyTrashed();
+            $query = User::onlyTrashed();
 
             // Order by latest and paginate
             $paymenttype = $query->orderBy('created_at', 'desc')->paginate(10);
@@ -246,7 +281,7 @@ class PaymentTypeController extends Controller
 
         // Restore the payment type
         try {
-            $paymenttype = PaymentType::withTrashed()->where('id',$request->id)->first();
+            $paymenttype = User::withTrashed()->where('id',$request->id)->first();
             $paymenttype->restore();
 
             return response()->json([
@@ -278,7 +313,7 @@ class PaymentTypeController extends Controller
 
         // Force delete the payment type
         try {
-            $paymenttype = PaymentType::withTrashed()->where('id',$request->id)->first();
+            $paymenttype = User::withTrashed()->where('id',$request->id)->first();
             $paymenttype->forceDelete();
 
             return response()->json([
@@ -310,7 +345,7 @@ class PaymentTypeController extends Controller
 
         // Update the payment type status
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = User::where('id',$request->id)->first();
             $paymenttype->update([
                 'status' => $request->status,
                 'updated_by' => Auth::id(),

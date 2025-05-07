@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\{
         BookingController,
         PaymentTypeController,
         SettingController,
-        BookingTransactionController
+        BookingTransactionController,
     };
 
 // Public Routes
@@ -75,5 +75,17 @@ Route::middleware('jwt.verify')->group(function () {
 
     Route::prefix('booking/transiction')->controller(BookingTransactionController::class)->group(function () {
         Route::post('/update', 'storeOrUpdateExtraWeightBooking');
+    });
+
+    Route::prefix('user')->controller(UserController::class)->group(function () {
+        Route::get('/list', 'list');
+        Route::post('/store', 'store');
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
+        Route::post('/delete', 'delete');
+        Route::get('/trashed', 'trashed');
+        Route::post('/restore', 'restore');
+        Route::post('/force-delete', 'forceDelete');
+        Route::post('/status', 'status');
     });
 });
