@@ -175,47 +175,49 @@ class BookingController extends Controller
         }
     }
  
-    public function detailuser(Request $request) 
+    public function detailuser(Request $request)
     {
         try {
+            // Load booking with passenger details
             $booking = Booking::with('bookingDetails')
                 ->where('booking_id', $request->booking_id)
                 ->first();
 
+            // If no booking found, return error
             if (!$booking) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Booking Data not found',
+                    'message' => 'Booking data not found.',
                 ], 200);
             }
 
-            // Split journey
-            $journeyParts = explode('-', $booking->journey);
+            // Split journey string (e.g., "CityA - CityB")
+            $journeyParts = explode('-', $booking->journey ?? '');
             $journey_start = isset($journeyParts[0]) ? trim($journeyParts[0]) : '';
             $journey_end = isset($journeyParts[1]) ? trim($journeyParts[1]) : '';
 
-            // Format only necessary passenger details
+            // Format each passenger
             $passengers = $booking->bookingDetails->map(function ($passenger) {
                 return [
-                    'name' => $passenger->name ?? '',
+                    'name' => $passenger->passenger_name ?? '',
                     'age' => $passenger->age ?? '',
                     'gender' => $passenger->gender ?? '',
                     'yatra_reg_id' => $passenger->yatra_reg_id ?? '',
                     'mobile_no' => $passenger->mobile_no ?? '',
                     'government_id' => $passenger->government_id ?? '',
                     'government_id_type' => $passenger->government_id_type ?? '',
+                    'passenger_booking_status' => $passenger->passenger_booking_status ?? '',
                 ];
             });
 
-            // Build the response
+            // Format booking response
             $formattedBooking = [
                 'id' => $booking->id,
                 'operator_name' => $booking->operator_name ?? '',
                 'booking_id' => $booking->booking_id ?? '',
                 'transaction_id' => $booking->transaction_id ?? '',
                 'group_id' => $booking->group_id ?? '',
-                'booking_status' => $booking->booking_status ?? '',
-                'passenger_booking_status' => $booking->passenger_booking_status ?? '',
+                'booking_status' => $booking->status ?? '',
                 'last_update_time' => $booking->last_update_time ?? '',
                 'booking_type' => $booking->booking_type ?? '',
                 'booking_date' => $booking->booking_date ?? '',
@@ -225,20 +227,26 @@ class BookingController extends Controller
                 'boarding_date' => $booking->boarding_date ?? '',
                 'time_slot' => $booking->time_slot ?? '',
                 'return_type' => $booking->return_type ?? '',
+                'total_amount' => $booking->total_amount ?? '',
+                'booking_base_fare' => $booking->booking_base_fare ?? '',
+                'booking_base_fare_tax' => $booking->booking_base_fare_tax ?? '',
+                'booking_convenience_fee' => $booking->booking_convenience_fee ?? '',
+                'booking_convenience_fee_tax' => $booking->booking_convenience_fee_tax ?? '',
                 'passengers' => $passengers,
             ];
 
             return response()->json([
                 'status' => true,
                 'message' => 'Booking found successfully.',
-                'booking' => [$formattedBooking],
+                'booking' => $formattedBooking,
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Something went wrong: ' . $e->getMessage(),
             ], 200);
         }
     }
+
 }
