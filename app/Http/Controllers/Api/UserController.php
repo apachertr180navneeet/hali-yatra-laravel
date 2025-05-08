@@ -22,28 +22,32 @@ class UserController extends Controller
         try {
             $query = User::query();
 
-            // Order by latest and paginate
-            $paymenttype = $query->where('role','operator')->orderBy('created_at', 'desc')->paginate(10);
+            // Filter for operators and paginate
+            $operators = $query->where('role', 'operator')->orderBy('created_at', 'desc')->paginate(10);
 
             // Check if empty
-            if ($paymenttype->isEmpty()) {
+            if ($operators->isEmpty()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Operator not found',
                 ], 200);
             }
 
-            // Replace nulls with empty strings
-            $paymenttype->getCollection()->transform(function ($paymenttype) {
-                return collect($paymenttype)->map(function ($value) {
+            // Modify each operator data
+            $operators->getCollection()->transform(function ($operator) {
+                // Convert nulls to empty strings and append URL to avatar
+                return collect($operator)->map(function ($value, $key) use ($operator) {
+                    if ($key === 'avatar') {
+                        return $value ? url('storage/' . $value) : '';
+                    }
                     return $value === null ? "" : $value;
                 });
             });
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type found successfully.',
-                'paymenttype' => $paymenttype,
+                'message' => 'Operators found successfully.',
+                'paymenttype' => $operators,
             ], 200);
 
         } catch (Exception $e) {

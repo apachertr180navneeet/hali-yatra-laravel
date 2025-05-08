@@ -34,7 +34,7 @@ class BookingTransactionController extends Controller
             'payable_amount' => 'required|numeric',
 
             'transactions' => 'required|array',
-            'transactions.*.transaction_type' => 'required|string',
+            'transactions.*.transaction_type' => 'required',
             'transactions.*.amount' => 'required|numeric',
             'transactions.*.remark' => 'nullable|string',
             'transactions.*.transaction_id' => 'nullable|string',
