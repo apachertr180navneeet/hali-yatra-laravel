@@ -3,20 +3,20 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\{
-        UserController,
-        ImportController,
-        ContactController,
-        AuthController,
-        BookingController,
-        PaymentTypeController,
-        SettingController,
-        BookingTransactionController,
-        TicketTypeController,
-        UserIdProofController,
-        LocationController
-    };
+    AuthController,
+    BookingController,
+    BookingTransactionController,
+    ContactController,
+    ImportController,
+    LocationController,
+    PaymentTypeController,
+    SettingController,
+    TicketTypeController,
+    UserController,
+    UserIdProofController
+};
 
-// Public Routes
+// ───── Public Routes ─────────────────────────────────────────────────────────
 Route::controller(AuthController::class)->group(function () {
     Route::get('/splash-screen', 'splashScreens');
     Route::get('/timezones', 'getTimeZones');
@@ -24,7 +24,6 @@ Route::controller(AuthController::class)->group(function () {
 
 Route::post('/contact', [ContactController::class, 'submitContact']);
 
-// Auth Routes
 Route::prefix('auth')->controller(AuthController::class)->group(function () {
     Route::post('/send-phone-otp', 'sendPhoneOtp');
     Route::post('/verify-phone-otp', 'verifyPhoneOtp');
@@ -34,10 +33,10 @@ Route::prefix('auth')->controller(AuthController::class)->group(function () {
     Route::post('/set-forgot-password', 'setForgotPassword');
 });
 
-// Protected Routes (JWT Middleware)
+// ───── Protected Routes ──────────────────────────────────────────────────────
 Route::middleware('jwt.verify')->group(function () {
 
-    // Auth-related actions
+    // Auth
     Route::controller(AuthController::class)->group(function () {
         Route::get('/user', 'getUser');
         Route::post('/refresh', 'refresh');
@@ -47,93 +46,94 @@ Route::middleware('jwt.verify')->group(function () {
         Route::delete('/delete-account', 'deleteAccount');
     });
 
-    // Booking Import
-    Route::post('/import/booking/excel', [ImportController::class, 'bookingExcelImport']);
+    // Booking
+    Route::prefix('booking')->group(function () {
+        Route::controller(BookingController::class)->group(function () {
+            Route::get('/list', 'list');
+            Route::get('/viauser/list', 'bookingviauserlist');
+            Route::post('/detail', 'detail');
+            Route::post('/detail/user', 'detailuser');
+        });
 
-    // Booking APIs
-    Route::prefix('booking')->controller(BookingController::class)->group(function () {
-        Route::get('/list', 'list');
-        Route::get('/viauser/list', 'bookingviauserlist');
-        Route::post('/detail', 'detail');
-        Route::post('/detail/user', 'detailuser');
+        Route::prefix('transaction')->controller(BookingTransactionController::class)->group(function () {
+            Route::post('/update', 'storeOrUpdateExtraWeightBooking');
+        });
+
+        // Import Booking
+        Route::post('/import/excel', [ImportController::class, 'bookingExcelImport']);
     });
 
-    // Payment Type APIs
-    Route::prefix('payment-type')->controller(PaymentTypeController::class)->group(function () {
-        Route::get('/list', 'list');
-        Route::post('/store', 'store');
-        Route::post('/get', 'get');
-        Route::post('/update', 'update');
-        Route::post('/delete', 'delete');
-        Route::get('/trashed', 'trashed');
-        Route::post('/restore', 'restore');
-        Route::post('/force-delete', 'forceDelete');
-        Route::post('/status', 'status');
-        Route::post('/order', 'order');
-    });
-
-
-    // Location APIs
+    // Locations
     Route::prefix('location')->controller(LocationController::class)->group(function () {
         Route::get('/list', 'list');
-        Route::post('/store', 'store');
-        Route::post('/get', 'get');
-        Route::post('/update', 'update');
-        Route::post('/delete', 'delete');
-        Route::get('/trashed', 'trashed');
-        Route::post('/restore', 'restore');
-        Route::post('/force-delete', 'forceDelete');
-        Route::post('/status', 'status');
-        Route::post('/order', 'order');
         Route::get('/locationlist', 'locationlist');
-    });
-
-
-     // Ticket Type APIs
-    Route::prefix('ticket-type')->controller(TicketTypeController::class)->group(function () {
-        Route::get('/list', 'list');
+        Route::get('/trashed', 'trashed');
         Route::post('/store', 'store');
         Route::post('/get', 'get');
         Route::post('/update', 'update');
         Route::post('/delete', 'delete');
-        Route::get('/trashed', 'trashed');
         Route::post('/restore', 'restore');
         Route::post('/force-delete', 'forceDelete');
         Route::post('/status', 'status');
         Route::post('/order', 'order');
     });
 
-
-    // Ticket Type APIs
-    Route::prefix('user-id-proof')->controller(UserIdProofController::class)->group(function () {
+    // Payment Types
+    Route::prefix('payment-type')->controller(PaymentTypeController::class)->group(function () {
         Route::get('/list', 'list');
+        Route::get('/trashed', 'trashed');
         Route::post('/store', 'store');
         Route::post('/get', 'get');
         Route::post('/update', 'update');
         Route::post('/delete', 'delete');
-        Route::get('/trashed', 'trashed');
         Route::post('/restore', 'restore');
         Route::post('/force-delete', 'forceDelete');
         Route::post('/status', 'status');
         Route::post('/order', 'order');
     });
 
+    // Settings
     Route::prefix('setting')->controller(SettingController::class)->group(function () {
         Route::post('/get', 'get');
         Route::post('/update', 'update');
     });
 
-    Route::prefix('booking/transiction')->controller(BookingTransactionController::class)->group(function () {
-        Route::post('/update', 'storeOrUpdateExtraWeightBooking');
-    });
-
-    Route::prefix('user')->controller(UserController::class)->group(function () {
+    // Ticket Types
+    Route::prefix('ticket-type')->controller(TicketTypeController::class)->group(function () {
         Route::get('/list', 'list');
+        Route::get('/trashed', 'trashed');
         Route::post('/store', 'store');
         Route::post('/get', 'get');
         Route::post('/update', 'update');
         Route::post('/delete', 'delete');
+        Route::post('/restore', 'restore');
+        Route::post('/force-delete', 'forceDelete');
+        Route::post('/status', 'status');
+        Route::post('/order', 'order');
+    });
+
+    // User ID Proof
+    Route::prefix('user-id-proof')->controller(UserIdProofController::class)->group(function () {
+        Route::get('/list', 'list');
         Route::get('/trashed', 'trashed');
+        Route::post('/store', 'store');
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
+        Route::post('/delete', 'delete');
+        Route::post('/restore', 'restore');
+        Route::post('/force-delete', 'forceDelete');
+        Route::post('/status', 'status');
+        Route::post('/order', 'order');
+    });
+
+    // Users
+    Route::prefix('user')->controller(UserController::class)->group(function () {
+        Route::get('/list', 'list');
+        Route::get('/trashed', 'trashed');
+        Route::post('/store', 'store');
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
+        Route::post('/delete', 'delete');
         Route::post('/restore', 'restore');
         Route::post('/force-delete', 'forceDelete');
         Route::post('/status', 'status');
