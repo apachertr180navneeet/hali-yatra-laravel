@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 use App\Models\{
     User,
-    PaymentType,
+    Location,
 };
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
@@ -16,21 +16,21 @@ use Mail,Hash,File,DB,Helper,Auth;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
 
-class PaymentTypeController extends Controller
+class LocationController extends Controller
 {
     public function list() 
     {
         try {
-            $query = PaymentType::query();
+            $query = Location::query();
 
             // Order by latest and paginate
-            $paymenttype = $query->orderBy('payment_order', 'asc')->paginate(10);
+            $paymenttype = $query->orderBy('location_order', 'asc')->paginate(10);
 
             // Check if empty
             if ($paymenttype->isEmpty()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Payment Type not found',
+                    'message' => 'Location not found',
                 ], 200);
             }
 
@@ -43,7 +43,41 @@ class PaymentTypeController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type found successfully.',
+                'message' => 'Location found successfully.',
+                'paymenttype' => $paymenttype,
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 200);
+        }
+    }
+
+
+    public function locationlist() 
+    {
+        try {
+                $query = Location::query();
+
+                // Order by location_order ascending and get all results
+                $paymenttype = $query->orderBy('location_order', 'asc')->get();
+
+
+            // Check if empty
+            if ($paymenttype->isEmpty()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Location not found',
+                ], 200);
+            }
+
+           
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Location found successfully.',
                 'paymenttype' => $paymenttype,
             ], 200);
 
@@ -59,11 +93,11 @@ class PaymentTypeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'type_name' => [
+            'name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('payment_type', 'type_name')->whereNull('deleted_at'),
+                Rule::unique('location', 'name')->whereNull('deleted_at'),
             ],
         ]);
 
@@ -74,16 +108,16 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Create a new payment type
+        // Create a new Location
         try {
-            $paymenttype = PaymentType::create([
-                'type_name' => $request->type_name,
+            $paymenttype = Location::create([
+                'name' => $request->name,
                 'created_by' => Auth::id(),
             ]);
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type created successfully.',
+                'message' => 'Location created successfully.',
             ], 201);
 
         } catch (Exception $e) {
@@ -98,7 +132,7 @@ class PaymentTypeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:payment_type,id',
+            'id' => 'required|integer|exists:location,id',
         ]);
 
         if ($validator->fails()) {
@@ -108,12 +142,12 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Get the payment type
+        // Get the Location
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = Location::where('id',$request->id)->first();
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type found successfully.',
+                'message' => 'Location found successfully.',
                 'paymenttype' => $paymenttype,
             ], 200);
 
@@ -129,8 +163,8 @@ class PaymentTypeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:payment_type,id',
-            'type_name' => 'required|string|max:255',
+            'id' => 'required|integer|exists:location,id',
+            'name' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -140,18 +174,18 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Update the payment type
+        // Update the Location
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = Location::where('id',$request->id)->first();
             $paymenttype->update([
-                'type_name' => $request->type_name,
+                'name' => $request->name,
                 'status' => $request->status,
                 'updated_by' => Auth::id(),
             ]);
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type updated successfully.',
+                'message' => 'Location updated successfully.',
             ], 200);
 
         } catch (Exception $e) {
@@ -176,14 +210,14 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Delete the payment type
+        // Delete the Location
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = Location::where('id',$request->id)->first();
             $paymenttype->delete();
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type deleted successfully.',
+                'message' => 'Location deleted successfully.',
             ], 200);
 
         } catch (Exception $e) {
@@ -197,7 +231,7 @@ class PaymentTypeController extends Controller
     public function trashed()
     {
         try {
-            $query = PaymentType::onlyTrashed();
+            $query = Location::onlyTrashed();
 
             // Order by latest and paginate
             $paymenttype = $query->orderBy('created_at', 'desc')->paginate(10);
@@ -206,7 +240,7 @@ class PaymentTypeController extends Controller
             if ($paymenttype->isEmpty()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Payment Type not found',
+                    'message' => 'Location not found',
                 ], 200);
             }
 
@@ -219,7 +253,7 @@ class PaymentTypeController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type found successfully.',
+                'message' => 'Location found successfully.',
                 'paymenttype' => $paymenttype,
             ], 200);
 
@@ -244,14 +278,14 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Restore the payment type
+        // Restore the Location
         try {
-            $paymenttype = PaymentType::withTrashed()->where('id',$request->id)->first();
+            $paymenttype = Location::withTrashed()->where('id',$request->id)->first();
             $paymenttype->restore();
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type restored successfully.',
+                'message' => 'Location restored successfully.',
             ], 200);
 
         } catch (Exception $e) {
@@ -276,14 +310,14 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Force delete the payment type
+        // Force delete the Location
         try {
-            $paymenttype = PaymentType::withTrashed()->where('id',$request->id)->first();
+            $paymenttype = Location::withTrashed()->where('id',$request->id)->first();
             $paymenttype->forceDelete();
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type deleted successfully.',
+                'message' => 'Location deleted successfully.',
             ], 200);
 
         } catch (Exception $e) {
@@ -308,9 +342,9 @@ class PaymentTypeController extends Controller
             ], 422);
         }
 
-        // Update the payment type status
+        // Update the Location status
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = Location::where('id',$request->id)->first();
             $paymenttype->update([
                 'status' => $request->status,
                 'updated_by' => Auth::id(),
@@ -318,7 +352,7 @@ class PaymentTypeController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type status updated successfully.',
+                'message' => 'Location status updated successfully.',
             ], 200);
 
         } catch (Exception $e) {
@@ -344,16 +378,16 @@ class PaymentTypeController extends Controller
         }
 
         $orders = array_map('trim', explode(',', $request->order));
-        // Update the payment type order
+        // Update the Location order
         try {
             foreach ($orders as $key => $id) {
                 $orderkey = $key+1;
-                PaymentType::where('id', $id)->update(['payment_order' => $orderkey]);
+                Location::where('id', $id)->update(['location_order' => $orderkey]);
             }
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type order updated successfully.',
+                'message' => 'Location order updated successfully.',
             ], 200);
 
         } catch (Exception $e) {

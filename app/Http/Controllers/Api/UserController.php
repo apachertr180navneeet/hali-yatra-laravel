@@ -12,6 +12,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Mail,Hash,File,DB,Helper,Auth;
 use Carbon\Carbon;
 
@@ -63,8 +64,16 @@ class UserController extends Controller
         // Validate the incoming request
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'mobile'   => 'required|digits_between:10,15|unique:users,phone',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->whereNull('deleted_at'),
+            ],
+            'mobile' => [
+                'required',
+                'digits_between:10,15',
+                Rule::unique('users', 'phone')->whereNull('deleted_at'),
+            ],
             'address'  => 'nullable|string|max:255',
             'profile'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // max 2MB
         ]);
@@ -154,8 +163,20 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'id'        => 'required|integer|exists:users,id',
             'name' => 'required|string|max:255',
-            'email'     => 'required|email|unique:users,email,' . $request->id,
-            'mobile'     => 'required|digits_between:10,15|unique:users,phone,' . $request->id,
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')
+                    ->ignore($request->id)
+                    ->whereNull('deleted_at'),
+            ],
+            'mobile' => [
+                'required',
+                'digits_between:10,15',
+                Rule::unique('users', 'phone')
+                    ->ignore($request->id)
+                    ->whereNull('deleted_at'),
+            ],
             'address'   => 'nullable|string|max:255',
             'profile'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);

@@ -7,7 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\{
     User,
     Booking,
-    BookingDetail
+    BookingDetail,
+    ExtraWeightBooking,
+    Transiction
 };
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
@@ -79,23 +81,31 @@ class BookingController extends Controller
     public function bookingviauserlist(Request $request)
     {
         try {
-            // Start query with join on bookings table
-            $query = BookingDetail::join('bookings', 'booking_detail.booking_id', '=', 'bookings.booking_id')
+            // Subquery: Get the latest booking_detail ID per booking_id
+            $subQuery = BookingDetail::selectRaw('MAX(id) as id')
+                ->groupBy('booking_id');
+
+            // Main query: Join latest booking_detail with bookings
+            $query = BookingDetail::joinSub($subQuery, 'latest_booking', function ($join) {
+                    $join->on('booking_detail.id', '=', 'latest_booking.id');
+                })
+                ->join('bookings', 'booking_detail.booking_id', '=', 'bookings.booking_id')
                 ->select(
-                    'booking_detail.*', 
+                    'booking_detail.*',
                     'bookings.no_of_passengers',
                     'bookings.total_amount',
                     'bookings.booking_base_fare',
                     'bookings.booking_convenience_fee',
                     'bookings.booking_convenience_fee_tax',
-                    'bookings.booking_base_fare_tax',); // Add required booking fields here
+                    'bookings.booking_base_fare_tax'
+                );
 
-            // Filter by booking_id if provided
+            // Filter by booking_id
             if ($request->has('booking_id') && !empty($request->booking_id)) {
                 $query->where('booking_detail.booking_id', $request->booking_id);
             }
 
-            // Filter by booking date range if both dates are provided
+            // Filter by booking date range
             if ($request->filled('booking_start_date') && $request->filled('booking_end_date')) {
                 $query->whereBetween('booking_detail.booking_date', [
                     $request->booking_start_date,
@@ -103,7 +113,7 @@ class BookingController extends Controller
                 ]);
             }
 
-            // Filter by boarding date range if both dates are provided
+            // Filter by boarding date range
             if ($request->filled('boarding_start_date') && $request->filled('boarding_end_date')) {
                 $query->whereBetween('booking_detail.boarding_date', [
                     $request->boarding_start_date,
@@ -111,10 +121,10 @@ class BookingController extends Controller
                 ]);
             }
 
-            // Order and paginate results
+            // Paginate the results
             $bookings = $query->orderBy('booking_detail.created_at', 'desc')->paginate(10);
 
-            // Check if bookings are empty
+            // If no records found
             if ($bookings->isEmpty()) {
                 return response()->json([
                     'status' => false,
@@ -122,14 +132,20 @@ class BookingController extends Controller
                 ], 200);
             }
 
-            // Convert null values to empty strings
+            // Format response: convert nulls to "" and format dates
             $bookings->getCollection()->transform(function ($booking) {
-                return collect($booking)->map(function ($value) {
+                return collect($booking)->map(function ($value, $key) {
+                    // Format date fields
+                    if (in_array($key, ['booking_date', 'boarding_date']) && !empty($value)) {
+                        return Carbon::parse($value)->format('d/m/Y');
+                    }
+
+                    // Default: convert nulls to empty string
                     return $value === null ? "" : $value;
                 });
             });
 
-            // Success response
+            // Return success
             return response()->json([
                 'status' => true,
                 'message' => 'Bookings found successfully.',
@@ -137,14 +153,14 @@ class BookingController extends Controller
             ], 200);
 
         } catch (Exception $e) {
-            dd($e);
-            // Error response
+            // Return error
             return response()->json([
                 'status' => false,
-                'message' => $e,
+                'message' => $e->getMessage(),
             ], 200);
         }
     }
+
 
 
 
@@ -182,6 +198,31 @@ class BookingController extends Controller
             $booking = Booking::with('bookingDetails')
                 ->where('booking_id', $request->booking_id)
                 ->first();
+
+            $extraweightbooking = ExtraWeightBooking::where('booking_id', $request->booking_id)
+            ->select([
+                'extra_body_weight',
+                'extra_luggage',
+                'extra_body_weight_amount',
+                'extra_luggage_amount',
+                'total_amount',
+                'discount_amount',
+                'payable_amount'
+            ])
+            ->first();
+
+
+            $transictionData = Transiction::join('payment_type', 'transictions.transiction_type', '=', 'payment_type.id')
+            ->where('transictions.booking_id', $request->booking_id)
+            ->select(
+                'transictions.transiction_type',
+                'transictions.booking_id',
+                'transictions.amount',
+                'transictions.remark',
+                'transictions.trasiction_id',
+                'payment_type.type_name as payment_type_name'
+            )
+            ->get();
 
             // If no booking found, return error
             if (!$booking) {
@@ -239,6 +280,8 @@ class BookingController extends Controller
                 'status' => true,
                 'message' => 'Booking found successfully.',
                 'booking' => $formattedBooking,
+                'orverweghtcharages' => $extraweightbooking ?? [],
+                'transiction' => $transictionData ?? [],
             ], 200);
 
         } catch (\Exception $e) {

@@ -30,13 +30,24 @@ class SettingController extends Controller
         }
 
         try {
-            // Attempt to find the setting by ID
-            $setting = Setting::find($request->id);
+            // Select only the required fields
+            $setting = Setting::select(
+                'id',
+                'minimum_body_weight',
+                'minimum_luggage_weight',
+                'minimum_body_weight_amount',
+                'minimum_luggage_weight_amount',
+                'tax',
+                'one_way_base_fare',
+                'both_way_base_fare',
+                'one_way_convience_fee',
+                'both_way_convience_fee'
+            )->find($request->id);
 
             return response()->json([
                 'status' => true,
                 'message' => $setting ? 'Setting found successfully.' : 'No setting found.',
-                'setting' => $setting ?? (object)[], // return empty object if null
+                'data' => $setting ?? (object)[],
             ], 200);
 
         } catch (\Exception $e) {
@@ -56,6 +67,11 @@ class SettingController extends Controller
             'minimum_luggage_weight' => 'required|numeric|min:0',
             'minimum_body_weight_amount' => 'required|numeric|min:0',
             'minimum_luggage_weight_amount' => 'required|numeric|min:0',
+            'tax' => 'required|numeric|min:0',
+            'one_way_base_fare' => 'required|numeric|min:0',
+            'both_way_base_fare' => 'required|numeric|min:0',
+            'both_way_convience_fee' => 'required|numeric|min:0',
+            'one_way_convience_fee' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -74,6 +90,11 @@ class SettingController extends Controller
                 'minimum_luggage_weight' => $request->minimum_luggage_weight,
                 'minimum_body_weight_amount' => $request->minimum_body_weight_amount,
                 'minimum_luggage_weight_amount' => $request->minimum_luggage_weight_amount,
+                'tax' => $request->tax,
+                'one_way_base_fare' => $request->one_way_base_fare,
+                'both_way_base_fare' => $request->both_way_base_fare,
+                'both_way_convience_fee' => $request->both_way_convience_fee,
+                'one_way_convience_fee' => $request->one_way_convience_fee,
                 'updated_by' => Auth::id(), // Optional, if you track who updated
             ]);
 

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 use App\Models\{
     User,
-    PaymentType,
+    TicketType,
 };
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
@@ -16,15 +16,15 @@ use Mail,Hash,File,DB,Helper,Auth;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
 
-class PaymentTypeController extends Controller
+class TicketTypeController extends Controller
 {
     public function list() 
     {
         try {
-            $query = PaymentType::query();
+            $query = TicketType::query();
 
             // Order by latest and paginate
-            $paymenttype = $query->orderBy('payment_order', 'asc')->paginate(10);
+            $paymenttype = $query->orderBy('ticket_order', 'asc')->paginate(10);
 
             // Check if empty
             if ($paymenttype->isEmpty()) {
@@ -43,7 +43,7 @@ class PaymentTypeController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type found successfully.',
+                'message' => 'Ticket Type found successfully.',
                 'paymenttype' => $paymenttype,
             ], 200);
 
@@ -59,11 +59,19 @@ class PaymentTypeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'type_name' => [
+            'name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('payment_type', 'type_name')->whereNull('deleted_at'),
+                Rule::unique('ticket_type', 'name')->whereNull('deleted_at'),
+            ],
+            'pecentage' => [
+                'required',
+                'string',
+                'max:255'
+            ],
+            'type' => [
+                'required'
             ],
         ]);
 
@@ -76,14 +84,16 @@ class PaymentTypeController extends Controller
 
         // Create a new payment type
         try {
-            $paymenttype = PaymentType::create([
-                'type_name' => $request->type_name,
+            $paymenttype = TicketType::create([
+                'name' => $request->name,
+                'pecentage' => $request->pecentage,
+                'type' => $request->type,
                 'created_by' => Auth::id(),
             ]);
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type created successfully.',
+                'message' => 'Ticket Type created successfully.',
             ], 201);
 
         } catch (Exception $e) {
@@ -98,7 +108,7 @@ class PaymentTypeController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:payment_type,id',
+            'id' => 'required|integer|exists:ticket_type,id',
         ]);
 
         if ($validator->fails()) {
@@ -110,10 +120,10 @@ class PaymentTypeController extends Controller
 
         // Get the payment type
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = TicketType::where('id',$request->id)->first();
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type found successfully.',
+                'message' => 'Titcket Type found successfully.',
                 'paymenttype' => $paymenttype,
             ], 200);
 
@@ -130,7 +140,9 @@ class PaymentTypeController extends Controller
         // Validate the request
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:payment_type,id',
-            'type_name' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'pecentage' => 'required|string|max:255',
+            'type' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -142,9 +154,12 @@ class PaymentTypeController extends Controller
 
         // Update the payment type
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = TicketType::where('id',$request->id)->first();
             $paymenttype->update([
-                'type_name' => $request->type_name,
+                'name' => $request->name,
+                'status' => $request->status,
+                'pecentage' => $request->pecentage,
+                'type' => $request->type,
                 'status' => $request->status,
                 'updated_by' => Auth::id(),
             ]);
@@ -178,7 +193,7 @@ class PaymentTypeController extends Controller
 
         // Delete the payment type
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = TicketType::where('id',$request->id)->first();
             $paymenttype->delete();
 
             return response()->json([
@@ -197,7 +212,7 @@ class PaymentTypeController extends Controller
     public function trashed()
     {
         try {
-            $query = PaymentType::onlyTrashed();
+            $query = TicketType::onlyTrashed();
 
             // Order by latest and paginate
             $paymenttype = $query->orderBy('created_at', 'desc')->paginate(10);
@@ -246,7 +261,7 @@ class PaymentTypeController extends Controller
 
         // Restore the payment type
         try {
-            $paymenttype = PaymentType::withTrashed()->where('id',$request->id)->first();
+            $paymenttype = TicketType::withTrashed()->where('id',$request->id)->first();
             $paymenttype->restore();
 
             return response()->json([
@@ -278,7 +293,7 @@ class PaymentTypeController extends Controller
 
         // Force delete the payment type
         try {
-            $paymenttype = PaymentType::withTrashed()->where('id',$request->id)->first();
+            $paymenttype = TicketType::withTrashed()->where('id',$request->id)->first();
             $paymenttype->forceDelete();
 
             return response()->json([
@@ -310,7 +325,7 @@ class PaymentTypeController extends Controller
 
         // Update the payment type status
         try {
-            $paymenttype = PaymentType::where('id',$request->id)->first();
+            $paymenttype = TicketType::where('id',$request->id)->first();
             $paymenttype->update([
                 'status' => $request->status,
                 'updated_by' => Auth::id(),
@@ -344,16 +359,17 @@ class PaymentTypeController extends Controller
         }
 
         $orders = array_map('trim', explode(',', $request->order));
+
         // Update the payment type order
         try {
             foreach ($orders as $key => $id) {
                 $orderkey = $key+1;
-                PaymentType::where('id', $id)->update(['payment_order' => $orderkey]);
+                TicketType::where('id', $id)->update(['ticket_order' => $orderkey]);
             }
 
             return response()->json([
                 'status' => true,
-                'message' => 'Payment Type order updated successfully.',
+                'message' => 'Ticket Type order updated successfully.',
             ], 200);
 
         } catch (Exception $e) {

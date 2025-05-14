@@ -19,6 +19,11 @@ class Setting extends Model
             'minimum_luggage_weight', 
             'minimum_body_weight_amount', 
             'minimum_luggage_weight_amount',
+            'tax', 
+            'one_way_base_fare', 
+            'both_way_base_fare',
+            'one_way_convience_fee', 
+            'both_way_convience_fee',
             'created_by', 
             'updated_by'
         ];

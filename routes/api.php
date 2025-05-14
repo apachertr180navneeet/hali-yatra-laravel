@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\{
         PaymentTypeController,
         SettingController,
         BookingTransactionController,
+        TicketTypeController,
+        UserIdProofController,
+        LocationController
     };
 
 // Public Routes
@@ -66,6 +69,53 @@ Route::middleware('jwt.verify')->group(function () {
         Route::post('/restore', 'restore');
         Route::post('/force-delete', 'forceDelete');
         Route::post('/status', 'status');
+        Route::post('/order', 'order');
+    });
+
+
+    // Location APIs
+    Route::prefix('location')->controller(LocationController::class)->group(function () {
+        Route::get('/list', 'list');
+        Route::post('/store', 'store');
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
+        Route::post('/delete', 'delete');
+        Route::get('/trashed', 'trashed');
+        Route::post('/restore', 'restore');
+        Route::post('/force-delete', 'forceDelete');
+        Route::post('/status', 'status');
+        Route::post('/order', 'order');
+        Route::get('/locationlist', 'locationlist');
+    });
+
+
+     // Ticket Type APIs
+    Route::prefix('ticket-type')->controller(TicketTypeController::class)->group(function () {
+        Route::get('/list', 'list');
+        Route::post('/store', 'store');
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
+        Route::post('/delete', 'delete');
+        Route::get('/trashed', 'trashed');
+        Route::post('/restore', 'restore');
+        Route::post('/force-delete', 'forceDelete');
+        Route::post('/status', 'status');
+        Route::post('/order', 'order');
+    });
+
+
+    // Ticket Type APIs
+    Route::prefix('user-id-proof')->controller(UserIdProofController::class)->group(function () {
+        Route::get('/list', 'list');
+        Route::post('/store', 'store');
+        Route::post('/get', 'get');
+        Route::post('/update', 'update');
+        Route::post('/delete', 'delete');
+        Route::get('/trashed', 'trashed');
+        Route::post('/restore', 'restore');
+        Route::post('/force-delete', 'forceDelete');
+        Route::post('/status', 'status');
+        Route::post('/order', 'order');
     });
 
     Route::prefix('setting')->controller(SettingController::class)->group(function () {
