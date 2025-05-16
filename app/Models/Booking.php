@@ -34,6 +34,8 @@ class Booking extends Model
         'cancellation_date',
         'remarks',
         'refund_amount',
+        'booking_from',
+        'booking_counter_id',
     ];
 
 
