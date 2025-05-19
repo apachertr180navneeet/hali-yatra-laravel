@@ -77,7 +77,6 @@ class BookingController extends Controller
         }
     }
 
-
     public function bookingviauserlist(Request $request)
     {
         try {
@@ -160,9 +159,6 @@ class BookingController extends Controller
             ], 200);
         }
     }
-
-
-
 
     public function detail(Request $request) 
     {
