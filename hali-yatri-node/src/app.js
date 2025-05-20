@@ -1,40 +1,31 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
+const path = require('path');
+const authRoutes = require('./routes/auth');
+const db = require('./config/database');
 
-// Load environment variables
-dotenv.config();
-
-// Create Express app
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
-// Swagger setup
-const swaggerOptions = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Hali Yatri API',
-      version: '1.0.0',
-      description: 'API documentation for Hali Yatri',
-    },
-    servers: [
-      {
-        url: 'http://localhost:' + (process.env.PORT),
-      },
-    ],
-  },
-  apis: ['./src/routes/*.js'], // Path to the API docs (adjust as needed)
-};
+// Test database connection
+db.getConnection()
+    .then(connection => {
+        console.log('Connected to MySQL database');
+        connection.release();
+    })
+    .catch(err => {
+        console.error('Database connection error:', err);
+        process.exit(1);
+    });
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Routes
+app.use('/api/auth', authRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -43,12 +34,15 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+    console.error(err.stack);
+    res.status(500).json({
+        status: false,
+        message: 'Something went wrong!'
+    });
 });
 
-// Set port and start server
-const PORT = process.env.PORT || 3001;
+// Start server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
